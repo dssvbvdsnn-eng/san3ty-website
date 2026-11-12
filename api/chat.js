@@ -78,7 +78,7 @@ module.exports = async function handler(req, res) {
     return message;
   });
 
-  const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+  const model = process.env.OPENAI_MODEL || "gpt-6-luna";
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 25000);
 
