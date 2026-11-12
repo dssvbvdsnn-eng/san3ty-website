@@ -1,0 +1,8 @@
+{
+  "name": "san3ty-website",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  }
+}
