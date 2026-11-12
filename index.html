@@ -3,22 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101d2b">
+  <meta name="theme-color" content="#0b2344">
   <meta name="description" content="SAN3TY — منصة ذكية تربط العملاء بالحرفيين المناسبين لخدمات الصيانة المنزلية في مصر.">
   <title>SAN3TY — الصيانة الصح تبدأ بفهم المشكلة</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Alexandria:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+<noscript><style>.reveal{opacity:1!important;transform:none!important}</style></noscript>
 </head>
 <body>
+<a class="skip-link" href="#main-content">تخطّي إلى المحتوى</a>
+<div class="scroll-progress" aria-hidden="true"><span id="scrollProgress"></span></div>
 <header class="header" id="top"><div class="wrap nav">
   <a class="brand" href="#top"><span class="brand-icon">✳</span><span>SAN<span class="lime">3</span>TY<small>صَنْعَتي</small></span></a>
-  <button class="menu" id="menu" aria-label="فتح القائمة">☰</button>
-  <nav id="links"><a href="#problem">المشكلة</a><a href="#journey">كيف تعمل</a><a href="#demo">جرّب التجربة</a><a href="#value">القيمة</a><a href="#revenue">نموذج العمل</a></nav>
+  <button class="menu" id="menu" type="button" aria-controls="links" aria-expanded="false" aria-label="فتح القائمة"><span></span><span></span><span></span></button>
+  <nav id="links" aria-label="التنقل الرئيسي"><a href="#problem">المشكلة</a><a href="#journey">كيف تعمل</a><a href="#demo">جرّب التجربة</a><a href="#value">القيمة</a><a href="#revenue">نموذج العمل</a></nav>
   <a class="nav-cta" href="#demo">ابدأ التشخيص <span>↙</span></a>
 </div></header>
-<main>
+<main id="main-content">
 <section class="hero">
  <div class="wrap hero-grid">
   <div class="hero-copy reveal"><div class="eyebrow"><i></i> ذكاء اصطناعي لخدمات البيت في مصر</div>
@@ -69,7 +72,8 @@
 </div></section>
 <section class="section demo-section" id="demo"><div class="wrap demo-grid">
  <div class="reveal"><label>03 — TRY THE EXPERIENCE</label><h2>احكي لنا العطل.<br><em>وشوف التجربة.</em></h2><p>جرّب نموذجًا تفاعليًا يوضّح فكرة استقبال المشكلة واقتراح نوع الخدمة. دي محاكاة داخل الموقع وليست تشخيصًا فعليًا أو حجزًا حقيقيًا.</p><div class="note">ⓘ لا يتم إرسال بياناتك. رفع الصورة للعرض فقط؛ تحليل الصور الفعلي يحتاج ربط خدمة ذكاء اصطناعي.</div></div>
- <div class="console reveal"><div class="console-head"><span>✳　SAN3TY ASSISTANT<small>مساعدك لفهم طلب الصيانة</small></span><b>● DEMO MODE</b></div><div class="console-body"><div class="welcome"><span>✳</span><div><b>أهلًا بيك!</b><p>إيه المشكلة اللي محتاج مساعدة فيها؟</p></div></div><div class="quick"><button data-prompt="فيه تسريب مياه تحت حوض المطبخ">تسريب مياه</button><button data-prompt="مفتاح الكهرباء بيطلع شرارة">مشكلة كهرباء</button><button data-prompt="التكييف مش بيبرّد كويس">التكييف</button></div><div class="conversation" id="conversation" aria-live="polite"><p class="hint">اكتب وصفك أو اختار مثال من فوق لبدء التجربة.</p></div><form id="chatForm"><label class="upload">＋<input id="photo" type="file" accept="image/*" hidden></label><input id="issue" placeholder="اكتب المشكلة بالتفصيل..." aria-label="وصف المشكلة"><button type="submit">↑</button></form><div class="preview" id="preview"></div><small class="console-foot">✳ محاكاة توضيحية لفكرة الشات بوت</small></div></div>
+ <div class="console reveal"><div class="console-head"><span>✳　SAN3TY ASSISTANT<small>مساعدك لفهم طلب الصيانة</small></span><b>● DEMO MODE</b></div><div class="console-body"><div class="welcome"><span>✳</span><div><b>أهلًا بيك!</b><p>إيه المشكلة اللي محتاج مساعدة فيها؟</p></div></div><div class="quick"><button data-prompt="فيه تسريب مياه تحت حوض المطبخ">تسريب مياه</button><button data-prompt="مفتاح الكهرباء بيطلع شرارة">مشكلة كهرباء</button><button data-prompt="التكييف مش بيبرّد كويس">التكييف</button></div><div class="conversation" id="conversation" aria-live="polite" aria-relevant="additions text"><p class="hint">اكتب وصفك أو اختار مثال من فوق لبدء التجربة.</p></div><form id="chatForm"><label class="upload">＋<input id="photo" type="file" accept="image/*" hidden></label><input id="issue" name="issue" type="text" maxlength="500" autocomplete="off" placeholder="اكتب المشكلة بالتفصيل..." aria-label="وصف المشكلة" aria-describedby="chatHelp"><button type="submit">↑</button></form><div class="preview" id="preview" aria-live="polite"></div>
+<div class="chat-help" id="chatHelp">اكتب وصفًا مختصرًا أو اختر مثالًا. المحادثة تُرسل إلى مساعد الذكاء الاصطناعي عند تفعيل الربط.</div><small class="console-foot">✳ محاكاة توضيحية لفكرة الشات بوت</small></div></div>
 </div></section>
 <section class="section match"><div class="wrap"><div class="section-head reveal"><div><label>04 — SMART MATCHING</label><h2>مش مجرد قائمة فنيين.<br><em>ترشيح له معنى.</em></h2></div><p>الميزة الأساسية في SAN3TY هي فهم احتياج العميل أولًا، ثم ترشيح الأنسب بدل ما يسيبه يدور يدويًا.</p></div>
  <div class="match-board reveal"><div><small>INPUT / طلب العميل</small><blockquote>“محتاج فني يصلّح تسريب مياه، ويفضل يكون قريب ومتـاح النهارده.”</blockquote><span class="chip">سباكة</span><span class="chip">الموقع الجغرافي</span><span class="chip">موعد متاح</span></div><div class="ai"><span>✳</span><b>AI MATCHING</b><small>فهم ← تحليل ← ترشيح</small></div><div><small>OUTPUT / معايير الاختيار</small><ul><li>⌖ الموقع الجغرافي</li><li>⌘ التخصص المناسب</li><li>☆ التقييمات السابقة</li><li>◷ المواعيد المتاحة</li></ul></div></div>
@@ -86,5 +90,7 @@
 <section class="closing"><div class="wrap reveal"><label>08 — THE NEXT STEP</label><div class="big-star">✳</div><h2>بيت أهدى.<br><em>وحل أذكى.</em></h2><p>SAN3TY خطوة نحو تنظيم وتطوير قطاع الخدمات المنزلية في مصر، بتكنولوجيا تسهّل حياة الناس وتفتح فرصًا مستدامة للحرفيين.</p><a class="btn light-btn" href="#demo">جرّب نموذج SAN3TY ↙</a></div></section>
 </main>
 <footer><div class="wrap footer"><a class="brand" href="#top"><span class="brand-icon">✳</span><span>SAN<span class="lime">3</span>TY<small>صَنْعَتي</small></span></a><p>نفهم المشكلة. نرشّح الحل. وننظّم التجربة.</p><a href="#top">للأعلى ↑</a></div><div class="wrap copyright">© SAN3TY — مشروع منصة الخدمات المنزلية الذكية <span>Business Plan Concept · Egypt</span></div></footer>
+<a class="back-to-top" id="backToTop" href="#top" aria-label="العودة إلى أعلى الصفحة">↑</a>
+<div class="site-toast" id="siteToast" role="status" aria-live="polite"></div>
 <script src="script.js"></script>
 </body></html>
