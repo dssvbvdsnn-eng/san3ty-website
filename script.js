@@ -108,6 +108,7 @@
     busy = value;
     if (sendButton) { sendButton.disabled = value; sendButton.textContent = value ? "…" : "↑"; }
     if (input) input.disabled = value;
+    if (photo) photo.disabled = value;
     quickButtons.forEach(button => { button.disabled = value; });
     if (form) form.setAttribute("aria-busy", String(value));
   }
@@ -167,11 +168,11 @@
     return "حصلت مشكلة أثناء الاتصال بالمساعد. جرّب مرة أخرى بعد قليل.";
   }
   async function askAssistant(text, attachedImage) {
-    history.push({ role: "user", content: text });
+    const outgoing = history.concat([{ role: "user", content: text }]).slice(-MAX_HISTORY);
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: history.slice(-MAX_HISTORY), image: attachedImage || undefined })
+      body: JSON.stringify({ messages: outgoing, image: attachedImage || undefined })
     });
     let data = {};
     try { data = await response.json(); } catch { /* Static-hosting 404 may return HTML */ }
@@ -181,7 +182,7 @@
       throw error;
     }
     if (typeof data.reply !== "string" || !data.reply.trim()) throw new Error("المساعد رجع ردًا فارغًا. جرّب صياغة السؤال بطريقة مختلفة.");
-    history.push({ role: "assistant", content: data.reply });
+    history.splice(0, history.length, ...outgoing, { role: "assistant", content: data.reply });
     while (history.length > MAX_HISTORY) history.shift();
     return data.reply;
   }
