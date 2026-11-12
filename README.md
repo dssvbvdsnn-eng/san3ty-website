@@ -20,7 +20,7 @@ Open `index.html` in a browser to review the visual site. The AI endpoint will n
 2. Keep the project at the repository root. No frontend build command is required.
 3. In Vercel, open **Project → Settings → Environment Variables**.
 4. Add `OPENAI_API_KEY` with your secret API key from [OpenAI API Keys](https://platform.openai.com/api-keys).
-5. Optionally add `OPENAI_MODEL` with the value `gpt-4.1-mini`. If omitted, the function uses that default.
+5. Optionally add `OPENAI_MODEL` with the value `gpt-6-luna`. If omitted, the function uses that default. This model supports text and image input.
 6. Redeploy the project. Use the Vercel deployment URL for the live AI-enabled website.
 
 **Never put your API key in HTML, CSS, JavaScript, a committed .env file, or a public GitHub secret-free example.** The key is read only by the server-side function from Vercel Environment Variables.
