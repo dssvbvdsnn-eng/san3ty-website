@@ -165,6 +165,7 @@ function rankArtisans(rows, area) {
       completed_jobs: completedJobs,
       availability: ["available", "busy"].includes(artisan.availability) ? artisan.availability : "unknown",
       bio: cleanText(artisan.bio, 220),
+      is_demo: cleanText(artisan.bio, 220).startsWith("بيانات تجريبية غير حقيقية"),
       phone: cleanText(artisan.phone, 30),
       whatsapp: cleanText(artisan.whatsapp, 30),
       match_reason: location.reason
@@ -303,8 +304,12 @@ async function onRequestPost(context) {
     }
 
     const count = recommendations.length;
+    const allDemo = recommendations.every(artisan => artisan.is_demo);
+    const resultMessage = allDemo
+      ? "فهمت المشكلة: " + (issueSummary || TRADE_LABELS[trade]) + ". لقيت لك " + count + " سجلات حرفيين تجريبية في " + area + " للاختبار فقط. الأسماء والتقييمات وأعداد الأعمال وهمية وليست لأشخاص حقيقيين، ولا يوجد اتصال أو حجز فعلي."
+      : "فهمت المشكلة: " + (issueSummary || TRADE_LABELS[trade]) + ". لقيت لك " + count + " من الحرفيين المطابقين المسجلين في " + area + ". رتبتهم حسب تطابق المنطقة والتقييمات والأعمال السابقة والتوافر. الترشيح مش تأكيد لحجز أو موعد؛ اتواصل مع الفني لتأكيد التفاصيل.";
     return sendJson(200, {
-      reply: "فهمت المشكلة: " + (issueSummary || TRADE_LABELS[trade]) + ". لقيت لك " + count + " من أفضل الحرفيين الموثقين المسجلين في " + area + ". رتبتهم حسب تطابق المنطقة والتقييمات والأعمال السابقة والتوافر. الترشيح مش تأكيد لحجز أو موعد؛ اتواصل مع الفني لتأكيد التفاصيل.",
+      reply: resultMessage,
       trade,
       area,
       issue_summary: issueSummary,
