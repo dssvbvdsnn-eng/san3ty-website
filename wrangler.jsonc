@@ -6,9 +6,18 @@
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": [
+      "/api/*"
+    ]
   },
   "ai": {
     "binding": "AI"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "san3ty-db",
+      "database_id": "15c40b28-44ea-4fb4-bfbe-bd32a1c97543"
+    }
+  ]
 }
