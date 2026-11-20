@@ -1,97 +1,82 @@
 # SAN3TY — Smart Home Services Platform
 
-SAN3TY connects people who need home maintenance with suitable, verified craftsmen in Egypt. The chatbot understands the problem, identifies the trade, asks for the neighborhood when needed, and searches a real D1 directory to return up to five ranked matches.
+SAN3TY connects customers with suitable, verified home-maintenance craftsmen in Egypt. The chatbot understands the issue, identifies the trade, asks for a neighborhood when needed, and searches a D1 directory to return up to five ranked matches.
 
-## What changed
+## Architecture
 
-- Rebuilt the chatbot around Cloudflare Workers AI (Gemma 4) instead of the paid OpenAI API.
-- Added a Cloudflare Pages Function at `functions/api/chat.js`.
-- Added a real database schema in `database/schema.sql`.
-- Added ranked matching based on service-area fit, ratings, review count, completed jobs, and availability.
-- The assistant never fabricates craftsmen, phone numbers, ratings, prices, or appointment availability.
-- Removed the old OpenAI/Vercel-only chat endpoint. GitHub Pages can serve the static site but cannot run the chatbot backend.
+- `public/` — website HTML, CSS, and browser JavaScript.
+- `src/index.js` — Cloudflare Worker entrypoint. It serves static assets and routes `/api/chat`.
+- `functions/api/chat.js` — chatbot classification and verified-craftsman matching logic.
+- `database/schema.sql` — Cloudflare D1 schema for craftsmen and service areas.
+- `wrangler.jsonc` — Worker, static-assets, and Workers AI configuration.
 
-## Free setup: Cloudflare Pages + Workers AI + D1
+This project is configured for **Cloudflare Workers Builds**, not Cloudflare Pages. Keep the deploy command as `npx wrangler deploy`. No custom build command is required.
 
-Cloudflare currently includes a free Workers AI allocation of 10,000 Neurons per day. This is a limited daily quota, not unlimited usage. Model access and quotas can change; check Cloudflare's current pricing before launch.
+## Deploy the project
 
-### 1. Deploy the site
+1. In Cloudflare Dashboard, open **Workers & Pages**.
+2. Connect this GitHub repository as a **Worker** using Workers Builds.
+3. Keep the deploy command as `npx wrangler deploy`.
+4. The `wrangler.jsonc` file tells Wrangler to serve assets from `public/`, route `/api/*` through the Worker, and create the Workers AI binding named `AI`.
+5. Pushes to `main` trigger new deployments.
 
-1. Sign in to Cloudflare and open **Workers & Pages**.
-2. Create a **Pages** project and connect the GitHub repository `dssvbvdsnn-eng/san3ty-website`.
-3. Set the production branch to `main`.
-4. For this plain static site, use no build command and set the build output directory to `.` (the repository root).
-5. Deploy the project. The `functions/api/chat.js` file is automatically deployed as the `/api/chat` endpoint.
+The earlier build error is fixed by moving the frontend into `public/` and adding a Worker entrypoint. The Worker now serves both the website and the chatbot API.
 
-### 2. Connect the free AI model
+## Create and connect the D1 database
 
-1. Open the Pages project in Cloudflare.
-2. Go to **Settings → Bindings → Add → Workers AI**.
-3. Add a binding named exactly `AI`.
-4. Save and redeploy if Cloudflare asks.
+The Worker expects a D1 binding named `DB`. Create the database in Cloudflare, then add its exact ID to `wrangler.jsonc` before redeploying.
 
-The function uses `@cf/google/gemma-4-26b-a4b-it`. No OpenAI key and no API key in browser code are required.
+1. In Cloudflare Dashboard, open **Storage & databases → D1 SQL Database**.
+2. Create a database named `san3ty-db`.
+3. Copy its database ID from the details page.
+4. Add this object to the top-level `d1_databases` array in `wrangler.jsonc` (replace the ID with the one from your account):
 
-### 3. Create and connect the craftspeople database
-
-1. In Cloudflare, open **Workers & Pages → D1 SQL Database** and create a database, for example `san3ty-db`.
-2. Open the database's SQL console.
-3. Copy and run the complete contents of `database/schema.sql`.
-4. Open the Pages project **Settings → Bindings → Add → D1 database**.
-5. Add a binding named exactly `DB` and select the database you created.
-6. Redeploy the Pages project.
-
-### 4. Add real craftsmen
-
-The database starts empty intentionally. Add real people only after checking their identity, craft, service area, rating/review evidence, and permission to publish their contact details.
-
-Each record needs:
-- a unique `id` (for example, a UUID);
-- `name`, `trade`, `governorate`, and `district`;
-- rating and review totals only when supported by actual reviews;
-- completed jobs and current availability only when verified;
-- optional phone and WhatsApp numbers (store WhatsApp with Egypt's international country code, e.g. `20...`, without the leading plus sign);
-- `is_verified = 1` only after your team completes verification;
-- one or more rows in `artisan_service_areas` for areas they really serve.
-
-Example SQL shape (replace every placeholder with real verified data before running):
-
-```sql
-INSERT INTO artisans (
-  id, name, trade, governorate, district, rating, reviews_count,
-  completed_jobs, availability, bio, phone, whatsapp, is_verified
-) VALUES (
-  'REPLACE_WITH_UNIQUE_ID', 'REAL_CRAFTSMAN_NAME', 'plumbing',
-  'القاهرة', 'مدينة نصر', 4.7, 18, 32, 'available',
-  'وصف حقيقي مختصر', 'REAL_PHONE', 'REAL_WHATSAPP', 1
-);
-
-INSERT INTO artisan_service_areas (artisan_id, area_name)
-VALUES ('REPLACE_WITH_UNIQUE_ID', 'مدينة نصر');
+```json
+"d1_databases": [
+  {
+    "binding": "DB",
+    "database_name": "san3ty-db",
+    "database_id": "PASTE_YOUR_DATABASE_ID_HERE"
+  }
+]
 ```
 
-Do not leave the example placeholder values in production. The matching service returns only active, verified records that match the requested trade and area/governorate.
+5. Commit the updated file and let Workers Builds deploy it.
+6. Open the D1 SQL Console and run the full contents of `database/schema.sql`.
 
-## How the matching score works
+Do not put account passwords or API tokens in this repository. A D1 database ID is a resource identifier, not a password, but use the ID from your own Cloudflare account.
 
-The system first filters to the correct trade and verified, active records. It then ranks eligible records using:
-- service-area / district match (strongest location signal);
-- same-governorate match when exact district service coverage is not recorded;
-- customer rating;
-- number of reviews;
-- completed jobs;
-- availability status.
+## Add real craftsmen
 
-The chatbot returns at most five results. If the database has no verified matches, it says so instead of inventing results. Availability and booking are not guaranteed until the customer confirms directly with the craftsman.
+The database starts empty on purpose. Add real craftsmen only after verifying identity, trade, service area, rating evidence, and permission to publish contact details.
 
-## Local development and limitations
+Each record needs:
+- a unique ID;
+- name, supported trade code, governorate, and district;
+- real rating and review totals, if available;
+- completed-jobs count and availability only when verified;
+- optional phone and WhatsApp numbers;
+- `is_verified = 1` only after verification;
+- one or more real service-area records.
 
-- Open `index.html` to inspect the static design, but the live `/api/chat` endpoint only works after deploying to Cloudflare Pages with both bindings configured.
-- To test Cloudflare Pages Functions locally, use Wrangler and configure local AI/D1 bindings as described in Cloudflare's current documentation.
-- The AI daily free quota is limited. When the quota is exhausted, requests may fail until the quota resets.
-- GitHub Pages is static hosting only. Use the Cloudflare Pages URL for the working chatbot.
-- Do not put provider secrets, private user data, or payment credentials in frontend files or the public repository.
+Supported trade codes: `plumbing`, `electrical`, `air_conditioning`, `carpentry`, `painting`, `appliance_repair`, `water_heater`, and `general_maintenance`.
+
+The matching endpoint filters to active, verified craftsmen in the right trade and matching district/service area/governorate, then ranks them using location fit, rating, review count, completed jobs, and availability. It returns at most five results. It never fabricates names or contact details.
+
+## AI service and free-tier limits
+
+The Worker uses Cloudflare Workers AI with `@cf/google/gemma-4-26b-a4b-it` through the binding `AI`. No OpenAI API key is required. The free allocation is limited and can change; it is not unlimited.
+
+## Test
+
+- Visit the Worker's `workers.dev` URL to open the website.
+- Send a POST request to `/api/chat` with JSON containing `messages` and optionally `area`.
+- Missing AI binding returns `ai_binding_missing`.
+- Missing D1 binding means the assistant can classify issues but cannot return database-backed craftspeople.
+- If there are no verified matching craftsmen, the assistant says so rather than inventing recommendations.
 
 ## Safety
 
-For electrical sparks, burning smells, or exposed wiring, the assistant warns users not to touch wires or attempt repairs and to contact a qualified electrician. For severe water leaks, it may advise closing the main water valve only when safe. The bot does not make a confirmed diagnosis or promise a booking.
+The assistant does not provide a confirmed diagnosis or guarantee availability or booking. For electrical sparks, burning smells, or exposed wires, it advises users to stay away and contact a qualified electrician. For severe water leaks, it may advise shutting off the main valve only when safe.
+
+Never put passwords, API tokens, or secrets in frontend files or the public repository.
