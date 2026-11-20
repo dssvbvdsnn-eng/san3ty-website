@@ -183,7 +183,8 @@
     if (!Array.isArray(recommendations) || !recommendations.length) return;
 
     const heading = makeElement("div", "recommendation-heading");
-    const title = makeElement("strong", "", "الحرفيون الأنسب لطلبك");
+    const allDemo = recommendations.every(artisan => artisan.is_demo === true || String(artisan.bio || "").includes("بيانات تجريبية غير حقيقية"));
+    const title = makeElement("strong", "", allDemo ? "نتائج تجريبية للاختبار فقط" : "الحرفيون الأنسب لطلبك");
     const subtitle = makeElement("span", "", (tradeLabels[trade] || "الخدمة المطلوبة") + " · " + (area || "منطقتك"));
     heading.append(title, subtitle);
     resultsBox.appendChild(heading);
@@ -195,7 +196,8 @@
       const name = makeElement("h4", "", (index + 1) + ". " + (artisan.name || "حرفي مسجل"));
       const subtitleLine = makeElement("p", "", [tradeLabels[artisan.trade] || tradeLabels[trade] || "خدمات صيانة", artisan.district, artisan.governorate].filter(Boolean).join(" · "));
       identity.append(name, subtitleLine);
-      top.append(identity, makeElement("span", "verified-label", "✓ موثّق"));
+      const demoRecord = artisan.is_demo === true || String(artisan.bio || "").includes("بيانات تجريبية غير حقيقية");
+      top.append(identity, makeElement("span", demoRecord ? "demo-label" : "verified-label", demoRecord ? "بيانات تجريبية" : "✓ موثّق"));
       card.appendChild(top);
 
       const stats = makeElement("div", "artisan-stats");
