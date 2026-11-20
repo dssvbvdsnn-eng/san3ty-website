@@ -44,7 +44,7 @@ const SYSTEM_PROMPT = `
 - لا تطلب عنوان المنزل التفصيلي أو أي بيانات دفع أو كلمات مرور.
 `;
 
-function sendJson(response, status, payload) {
+function sendJson(status, payload) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: {
@@ -116,18 +116,22 @@ function areaSimilarity(artisan, userArea) {
   const artisanDistrict = normalizeArabic(artisan.district);
   const artisanGovernorate = normalizeArabic(artisan.governorate);
 
-  const directValues = [artisanDistrict, ...serviceAreas].filter(Boolean);
-  const districtMatch = directValues.some(value =>
+  const matchesArea = value => Boolean(value) && (
     wanted.includes(value) || value.includes(wanted) ||
     pieces.some(piece => piece.includes(value) || value.includes(piece))
   );
+  const districtMatch = matchesArea(artisanDistrict);
+  const serviceAreaMatch = serviceAreas.some(matchesArea);
   const governorateMatch = Boolean(artisanGovernorate) && (
     wanted.includes(artisanGovernorate) ||
     pieces.some(piece => piece === artisanGovernorate || piece.includes(artisanGovernorate) || artisanGovernorate.includes(piece))
   );
 
   if (districtMatch) {
-    return { eligible: true, score: artisanDistrict && directValues.includes(artisanDistrict) ? 35 : 32, reason: "العنوان أو نطاق الخدمة يطابق المنطقة التي طلبتها" };
+    return { eligible: true, score: 35, reason: "عنوان الحرفي في نفس المنطقة التي طلبتها" };
+  }
+  if (serviceAreaMatch) {
+    return { eligible: true, score: 32, reason: "الحرفي مسجل ضمن مناطق الخدمة التي تغطي منطقتك" };
   }
   if (governorateMatch) {
     return { eligible: true, score: 15, reason: "يعمل داخل نفس المحافظة؛ أكّد معه تغطية الحي قبل الحجز" };
@@ -150,6 +154,7 @@ function rankArtisans(rows, area) {
       + availability + 10;
 
     return {
+      _rankScore: score,
       id: String(artisan.id),
       name: cleanText(artisan.name, 100),
       trade: artisan.trade,
@@ -165,10 +170,11 @@ function rankArtisans(rows, area) {
       match_reason: location.reason
     };
   }).filter(Boolean).sort((a, b) =>
+    b._rankScore - a._rankScore ||
     b.rating - a.rating ||
     b.reviews_count - a.reviews_count ||
     b.completed_jobs - a.completed_jobs
-  ).slice(0, 5);
+  ).slice(0, 5).map(({ _rankScore, ...artisan }) => artisan);
 }
 
 async function getArtisans(db, trade) {
@@ -188,10 +194,10 @@ async function getArtisans(db, trade) {
   return Array.isArray(result.results) ? result.results : [];
 }
 
-export async function onRequestPost(context) {
+async function onRequestPost(context) {
   const { request, env } = context;
   if (!env.AI || typeof env.AI.run !== "function") {
-    return sendJson({ status: 503 }, 503, {
+    return sendJson(503, {
       error: "Workers AI binding is missing",
       code: "ai_binding_missing"
     });
@@ -201,11 +207,11 @@ export async function onRequestPost(context) {
   try {
     body = await request.json();
   } catch {
-    return sendJson(null, 400, { error: "Invalid JSON body", code: "invalid_body" });
+    return sendJson(400, { error: "Invalid JSON body", code: "invalid_body" });
   }
 
   if (!body || typeof body !== "object" || Array.isArray(body)) {
-    return sendJson(null, 400, { error: "Invalid request body", code: "invalid_body" });
+    return sendJson(400, { error: "Invalid request body", code: "invalid_body" });
   }
 
   const incoming = Array.isArray(body.messages) ? body.messages.slice(-MAX_HISTORY) : [];
@@ -219,7 +225,7 @@ export async function onRequestPost(context) {
     messages.push({ role: item.role, content });
   }
   if (!messages.length || messages[messages.length - 1].role !== "user" || totalLength > MAX_TOTAL_LENGTH) {
-    return sendJson(null, 400, { error: "A valid user message is required", code: "invalid_messages" });
+    return sendJson(400, { error: "A valid user message is required", code: "invalid_messages" });
   }
 
   const suppliedArea = cleanText(body.area, 100);
@@ -247,7 +253,7 @@ export async function onRequestPost(context) {
     analysis = parseModelJson(raw);
   } catch (error) {
     console.error("Workers AI error:", error?.message || "unknown");
-    return sendJson(null, 502, { error: "AI provider is temporarily unavailable", code: "ai_unavailable" });
+    return sendJson(502, { error: "AI provider is temporarily unavailable", code: "ai_unavailable" });
   }
 
   const allText = conversationText + " " + suppliedArea;
@@ -258,17 +264,17 @@ export async function onRequestPost(context) {
   if (!trade) {
     const reply = cleanText(analysis?.reply, 1000) ||
       "احكيلي تفاصيل أكتر عن العطل، زي مكانه وإيه اللي بيحصل، عشان أحدد الحرفة المناسبة.";
-    return sendJson(null, 200, { reply, trade: null, area, recommendations: [] });
+    return sendJson(200, { reply, trade: null, area, recommendations: [] });
   }
 
   if (!area) {
     const reply = cleanText(analysis?.reply, 1000) ||
       "حدّد لي المنطقة أو الحي والمحافظة (مثلاً: مدينة نصر، القاهرة) عشان أبحث عن الحرفيين القريبين منك.";
-    return sendJson(null, 200, { reply: reply + (reply.includes("المنطقة") ? "" : "\nاكتب اسم الحي والمحافظة في خانة المنطقة فوق."), trade, area: "", recommendations: [] });
+    return sendJson(200, { reply: reply + (reply.includes("المنطقة") ? "" : "\nاكتب اسم الحي والمحافظة في خانة المنطقة فوق."), trade, area: "", recommendations: [] });
   }
 
   if (!env.DB || typeof env.DB.prepare !== "function") {
-    return sendJson(null, 200, {
+    return sendJson(200, {
       reply: "فهمت إن المشكلة تخص " + TRADE_LABELS[trade] + " في " + area + ". المساعد الذكي شغال، لكن قاعدة بيانات الحرفيين لسه مش متوصلة. وصّل D1 باسم DB وأضف بيانات الحرفيين الموثقين عشان أقدر أرتب لك أفضل خمسة.",
       trade,
       area,
@@ -282,7 +288,7 @@ export async function onRequestPost(context) {
     const records = await getArtisans(env.DB, trade);
     const recommendations = rankArtisans(records, area);
     if (!recommendations.length) {
-      return sendJson(null, 200, {
+      return sendJson(200, {
         reply: "حددت إنك محتاج " + TRADE_LABELS[trade] + " في " + area + "، لكن مفيش حاليًا حرفيين موثّقين مسجلين في قاعدة البيانات بيغطوا المنطقة دي. مش هعرض أسماء غير مؤكدة. جرّب منطقة قريبة أو ارجع بعد إضافة حرفيين جدد.",
         trade,
         area,
@@ -292,7 +298,7 @@ export async function onRequestPost(context) {
     }
 
     const count = recommendations.length;
-    return sendJson(null, 200, {
+    return sendJson(200, {
       reply: "فهمت المشكلة: " + (issueSummary || TRADE_LABELS[trade]) + ". لقيت لك " + count + " من أفضل الحرفيين الموثقين المسجلين في " + area + ". رتبتهم حسب تطابق المنطقة والتقييمات والأعمال السابقة والتوافر. الترشيح مش تأكيد لحجز أو موعد؛ اتواصل مع الفني لتأكيد التفاصيل.",
       trade,
       area,
@@ -301,7 +307,7 @@ export async function onRequestPost(context) {
     });
   } catch (error) {
     console.error("SAN3TY D1 query failed:", error?.message || "unknown");
-    return sendJson(null, 500, { error: "Could not search the artisan database", code: "database_query_failed" });
+    return sendJson(500, { error: "Could not search the artisan database", code: "database_query_failed" });
   }
 }
 
