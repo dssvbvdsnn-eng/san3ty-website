@@ -1,40 +1,97 @@
 # SAN3TY — Smart Home Services Platform
 
-A responsive Arabic RTL website concept for SAN3TY, a smart home-maintenance platform for Egypt. The frontend is deployed as a static website, and the AI chat runs through a protected Vercel Function.
+SAN3TY connects people who need home maintenance with suitable, verified craftsmen in Egypt. The chatbot understands the problem, identifies the trade, asks for the neighborhood when needed, and searches a real D1 directory to return up to five ranked matches.
 
-## Files
+## What changed
 
-- `index.html` — Arabic RTL website and chat interface
-- `styles.css` — blue/yellow visual system, responsive layouts, and motion
-- `script.js` — accessible navigation, scroll effects, chat UI, image compression, and API requests
-- `api/chat.js` — secure server-side OpenAI Responses API endpoint
-- `vercel.json` — Vercel Function configuration
+- Rebuilt the chatbot around Cloudflare Workers AI (Gemma 4) instead of the paid OpenAI API.
+- Added a Cloudflare Pages Function at `functions/api/chat.js`.
+- Added a real database schema in `database/schema.sql`.
+- Added ranked matching based on service-area fit, ratings, review count, completed jobs, and availability.
+- The assistant never fabricates craftsmen, phone numbers, ratings, prices, or appointment availability.
+- Removed the old OpenAI/Vercel-only chat endpoint. GitHub Pages can serve the static site but cannot run the chatbot backend.
 
-## Run the static site locally
+## Free setup: Cloudflare Pages + Workers AI + D1
 
-Open `index.html` in a browser to review the visual site. The AI endpoint will not run from a plain file or GitHub Pages.
+Cloudflare currently includes a free Workers AI allocation of 10,000 Neurons per day. This is a limited daily quota, not unlimited usage. Model access and quotas can change; check Cloudflare's current pricing before launch.
 
-## Deploy with Vercel to enable the AI chat
+### 1. Deploy the site
 
-1. Sign in to Vercel and import the GitHub repository `dssvbvdsnn-eng/san3ty-website`.
-2. Keep the project at the repository root. No frontend build command is required.
-3. In Vercel, open **Project → Settings → Environment Variables**.
-4. Add `OPENAI_API_KEY` with your secret API key from [OpenAI API Keys](https://platform.openai.com/api-keys).
-5. Optionally add `OPENAI_MODEL` with the value `gpt-6-luna`. If omitted, the function uses that default. This model supports text and image input.
-6. Redeploy the project. Use the Vercel deployment URL for the live AI-enabled website.
+1. Sign in to Cloudflare and open **Workers & Pages**.
+2. Create a **Pages** project and connect the GitHub repository `dssvbvdsnn-eng/san3ty-website`.
+3. Set the production branch to `main`.
+4. For this plain static site, use no build command and set the build output directory to `/` (the repository root).
+5. Deploy the project. The `functions/api/chat.js` file is automatically deployed as the `/api/chat` endpoint.
 
-**Never put your API key in HTML, CSS, JavaScript, a committed .env file, or a public GitHub secret-free example.** The key is read only by the server-side function from Vercel Environment Variables.
+### 2. Connect the free AI model
 
-## AI behavior and safety
+1. Open the Pages project in Cloudflare.
+2. Go to **Settings → Functions → Workers AI** (Bindings).
+3. Add a binding named exactly `AI`.
+4. Save and redeploy if Cloudflare asks.
 
-The chat uses the OpenAI Responses API. It answers in Egyptian Arabic, helps classify home-maintenance issues, can receive an optional compressed image, and avoids inventing technicians, ratings, prices, appointment availability, or confirmed diagnoses. Dangerous electrical issues are directed to a qualified technician.
+The function uses `@cf/google/gemma-4-26b-a4b-it`. No OpenAI key and no API key in browser code are required.
 
-The chat endpoint accepts only POST requests, limits conversation length, and does not store Responses API conversations (`store: false`). The website resizes and compresses user images in the browser before sending them to the protected endpoint.
+### 3. Create and connect the craftspeople database
 
-## Important billing note
+1. In Cloudflare, open **Workers & Pages → D1 SQL Database** and create a database, for example `san3ty-db`.
+2. Open the database's SQL console.
+3. Copy and run the complete contents of `database/schema.sql`.
+4. Open the Pages project **Settings → Functions → D1 database bindings**.
+5. Add a binding named exactly `DB` and select the database you created.
+6. Redeploy the Pages project.
 
-OpenAI API usage is billed separately from a ChatGPT subscription. Add API billing/credits in the OpenAI API Platform before expecting paid API requests to work. Review current model pricing before public launch.
+### 4. Add real craftsmen
 
-## Hosting note
+The database starts empty intentionally. Add real people only after checking their identity, craft, service area, rating/review evidence, and permission to publish their contact details.
 
-GitHub Pages can continue hosting the static showcase, but it cannot execute the `/api/chat` backend. To use the ChatGPT-powered assistant, use the Vercel deployment URL (or deploy the backend to another serverless host and point the frontend to it).
+Each record needs:
+- a unique `id` (for example, a UUID);
+- `name`, `trade`, `governorate`, and `district`;
+- rating and review totals only when supported by actual reviews;
+- completed jobs and current availability only when verified;
+- optional phone and WhatsApp numbers;
+- `is_verified = 1` only after your team completes verification;
+- one or more rows in `artisan_service_areas` for areas they really serve.
+
+Example SQL shape (replace every placeholder with real verified data before running):
+
+```sql
+INSERT INTO artisans (
+  id, name, trade, governorate, district, rating, reviews_count,
+  completed_jobs, availability, bio, phone, whatsapp, is_verified
+) VALUES (
+  'REPLACE_WITH_UNIQUE_ID', 'REAL_CRAFTSMAN_NAME', 'plumbing',
+  'القاهرة', 'مدينة نصر', 4.7, 18, 32, 'available',
+  'وصف حقيقي مختصر', 'REAL_PHONE', 'REAL_WHATSAPP', 1
+);
+
+INSERT INTO artisan_service_areas (artisan_id, area_name)
+VALUES ('REPLACE_WITH_UNIQUE_ID', 'مدينة نصر');
+```
+
+Do not leave the example placeholder values in production. The matching service returns only active, verified records that match the requested trade and area/governorate.
+
+## How the matching score works
+
+The system first filters to the correct trade and verified, active records. It then ranks eligible records using:
+- service-area / district match (strongest location signal);
+- same-governorate match when exact district service coverage is not recorded;
+- customer rating;
+- number of reviews;
+- completed jobs;
+- availability status.
+
+The chatbot returns at most five results. If the database has no verified matches, it says so instead of inventing results. Availability and booking are not guaranteed until the customer confirms directly with the craftsman.
+
+## Local development and limitations
+
+- Open `index.html` to inspect the static design, but the live `/api/chat` endpoint only works after deploying to Cloudflare Pages with both bindings configured.
+- To test Cloudflare Pages Functions locally, use Wrangler and configure local AI/D1 bindings as described in Cloudflare's current documentation.
+- The AI daily free quota is limited. When the quota is exhausted, requests may fail until the quota resets.
+- GitHub Pages is static hosting only. Use the Cloudflare Pages URL for the working chatbot.
+- Do not put provider secrets, private user data, or payment credentials in frontend files or the public repository.
+
+## Safety
+
+For electrical sparks, burning smells, or exposed wiring, the assistant warns users not to touch wires or attempt repairs and to contact a qualified electrician. For severe water leaks, it may advise closing the main water valve only when safe. The bot does not make a confirmed diagnosis or promise a booking.
