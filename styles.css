@@ -14,3 +14,140 @@
 @media(max-width:460px){.wrap{width:calc(100% - 28px)}.issues,.steps,.revenues{grid-template-columns:1fr}.hero-art{min-height:390px}.orbit{width:300px;height:300px}.float-tag{padding:9px;font-size:9px}.actions{gap:15px;flex-wrap:wrap}.btn{padding:12px 15px}.hero-foot{gap:9px}.console-body{padding:14px}.match-board blockquote{font-size:15px}.proof{align-items:flex-start}.risk-table>div{padding:15px}.back-to-top{left:14px;bottom:14px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.reveal{opacity:1;transform:none}}
 @keyframes menu-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+
+
+/* SAN3TY live AI matching interface */
+.service-area-field {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 12px;
+  color: var(--text, #152b46);
+  text-align: right;
+}
+.service-area-field span {
+  font-size: .82rem;
+  font-weight: 800;
+}
+.service-area-field input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(21, 48, 78, .16);
+  border-radius: 12px;
+  padding: 10px 13px;
+  background: #fff;
+  color: #142b47;
+  font: inherit;
+  outline: none;
+}
+.service-area-field input:focus {
+  border-color: #eabf28;
+  box-shadow: 0 0 0 3px rgba(234, 191, 40, .16);
+}
+.service-area-field small {
+  color: #748298;
+  font-size: .72rem;
+}
+.artisan-results {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+.recommendation-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 5px 12px;
+  padding: 8px 2px 2px;
+  color: #122a49;
+}
+.recommendation-heading strong { font-size: .92rem; }
+.recommendation-heading span { color: #738198; font-size: .74rem; }
+.artisan-card {
+  padding: 14px;
+  border: 1px solid rgba(15, 39, 68, .11);
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(12, 35, 61, .055);
+  animation: artisanCardIn .35s ease both;
+}
+.artisan-card:nth-child(2) { animation-delay: 45ms; }
+.artisan-card:nth-child(3) { animation-delay: 90ms; }
+.artisan-card:nth-child(4) { animation-delay: 135ms; }
+.artisan-card:nth-child(5) { animation-delay: 180ms; }
+.artisan-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.artisan-identity { min-width: 0; }
+.artisan-identity h4 {
+  margin: 0;
+  color: #122a49;
+  font-size: .92rem;
+  font-weight: 900;
+}
+.artisan-identity p {
+  margin: 4px 0 0;
+  color: #75839a;
+  font-size: .72rem;
+}
+.verified-label {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 20px;
+  background: rgba(35, 145, 102, .1);
+  color: #16805a;
+  font-size: .68rem;
+  font-weight: 800;
+}
+.artisan-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  margin-top: 11px;
+  color: #52647c;
+  font-size: .72rem;
+}
+.match-reason {
+  margin: 10px 0 0;
+  color: #36516d;
+  font-size: .74rem;
+  font-weight: 700;
+}
+.artisan-bio {
+  margin: 7px 0 0;
+  color: #68788c;
+  font-size: .76rem;
+  line-height: 1.65;
+}
+.artisan-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 11px;
+}
+.artisan-contact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 13px;
+  border-radius: 9px;
+  background: #102d50;
+  color: #fff;
+  text-decoration: none;
+  font-size: .75rem;
+  font-weight: 800;
+}
+.artisan-contact.whatsapp {
+  background: #e8f5ed;
+  color: #14784d;
+}
+@keyframes artisanCardIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .artisan-card { animation: none; }
+}
