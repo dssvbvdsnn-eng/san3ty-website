@@ -4,5 +4,12 @@
   "private": true,
   "engines": {
     "node": "22.x"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.166.0"
   }
 }
