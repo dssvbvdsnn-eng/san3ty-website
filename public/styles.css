@@ -151,3 +151,14 @@
 @media (prefers-reduced-motion: reduce) {
   .artisan-card { animation: none; }
 }
+
+/* Visibly distinguish synthetic demonstration profiles from real verified craftsmen. */
+.demo-label {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 20px;
+  background: #fff2cc;
+  color: #765400;
+  font-size: .68rem;
+  font-weight: 900;
+}
