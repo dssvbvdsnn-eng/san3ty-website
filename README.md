@@ -69,7 +69,8 @@ The matching endpoint filters to active, verified craftsmen in the right trade a
 The repository includes a synthetic test dataset:
 
 - `database/demo_artisans.csv` — 29 fictional artisan profiles for review/import.
-- `database/seed_demo_artisans.sql` — SQL seed script that inserts 29 demo profiles and 45 service-area rows into D1.
+- `database/seed_demo_artisans.sql` — compact multi-row SQL seed script.
+- `database/seed_demo_artisans_d1_console.sql` — D1 Console-friendly version with one INSERT statement per row (recommended if the compact script gives a syntax error).
 - All profile names, ratings, reviews, completed jobs, and availability values are fabricated for testing.
 - Phone and WhatsApp fields are deliberately blank. Do not use demo data as a real directory.
 - Demo bios are marked with `بيانات تجريبية غير حقيقية`; the chatbot and UI display a **demo data** badge instead of claiming these are real verified craftsmen.
@@ -77,8 +78,9 @@ The repository includes a synthetic test dataset:
 ### Load the demo dataset
 
 1. Open **D1 → san3ty-db → Console**.
-2. Open `database/seed_demo_artisans.sql` in GitHub.
-3. Copy the entire SQL script and paste it into the D1 Console.
+2. Open `database/seed_demo_artisans_d1_console.sql` in GitHub.
+3. Copy the entire file. Its first SQL statement begins with `INSERT OR REPLACE INTO artisans`; do not copy a partial block of values or any Markdown code fences.
+4. Paste it into the D1 Console and click Execute. It contains one SQL statement per row, followed by a verification SELECT.
 4. Click **Execute**. It is safe to re-run to refresh the same `DEMO-SAN3TY-*` records.
 5. The final SELECT should show `29` demo profiles. Do not import the CSV into the artisans table as-is; it has a combined `service_areas` column, while the seed SQL fills both database tables correctly.
 
