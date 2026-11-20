@@ -16,9 +16,7 @@ jobs:
           node-version: 22
       - name: Check frontend JavaScript
         run: node --check script.js
-      - name: Check API function JavaScript
-        run: node --check api/chat.js
-      - name: Validate JSON configuration
-        run: |
-          node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8'))"
-          node -e "JSON.parse(require('fs').readFileSync('vercel.json', 'utf8'))"
+      - name: Check Cloudflare Pages Function JavaScript
+        run: node --input-type=module --check < functions/api/chat.js
+      - name: Validate package configuration
+        run: node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8'))"
