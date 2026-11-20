@@ -15,8 +15,12 @@ jobs:
         with:
           node-version: 22
       - name: Check frontend JavaScript
-        run: node --check script.js
-      - name: Check Cloudflare Pages Function JavaScript
+        run: node --check public/script.js
+      - name: Check Worker entrypoint JavaScript
+        run: node --input-type=module --check < src/index.js
+      - name: Check chatbot module JavaScript
         run: node --input-type=module --check < functions/api/chat.js
-      - name: Validate package configuration
-        run: node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8'))"
+      - name: Validate JSON configuration
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('wrangler.jsonc', 'utf8'))"
