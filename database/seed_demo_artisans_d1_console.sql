@@ -77,5 +77,7 @@ INSERT INTO artisan_service_areas (artisan_id, area_name) VALUES ('DEMO-SAN3TY-0
 INSERT INTO artisan_service_areas (artisan_id, area_name) VALUES ('DEMO-SAN3TY-028', 'الحي المتميز');
 INSERT INTO artisan_service_areas (artisan_id, area_name) VALUES ('DEMO-SAN3TY-029', 'مدينة 6 أكتوبر');
 
-SELECT COUNT(*) AS demo_artisans, SUM(CASE WHEN bio LIKE 'بيانات تجريبية غير حقيقية%' THEN 1 ELSE 0 END) AS marked_demo FROM artisans WHERE id LIKE 'DEMO-SAN3TY-%';
-SELECT COUNT(*) AS demo_service_areas FROM artisan_service_areas WHERE artisan_id LIKE 'DEMO-SAN3TY-%';
+SELECT
+  (SELECT COUNT(*) FROM artisans WHERE id LIKE 'DEMO-SAN3TY-%') AS demo_artisans,
+  (SELECT COUNT(*) FROM artisans WHERE id LIKE 'DEMO-SAN3TY-%' AND bio LIKE 'بيانات تجريبية غير حقيقية%') AS marked_demo,
+  (SELECT COUNT(*) FROM artisan_service_areas WHERE artisan_id LIKE 'DEMO-SAN3TY-%') AS demo_service_areas;
