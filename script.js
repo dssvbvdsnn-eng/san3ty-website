@@ -1,5 +1,6 @@
 (() => {
   "use strict";
+
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const menu = $("#menu"), nav = $("#links"), header = $(".header");
@@ -71,30 +72,42 @@
     toast.textContent = message;
     toast.classList.add("show");
     window.clearTimeout(showToast.timer);
-    showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 3800);
+    showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 4200);
   }
 
   const form = $("#chatForm"), input = $("#issue"), conversation = $("#conversation");
-  const photo = $("#photo"), preview = $("#preview"), sendButton = $('button[type="submit"]', form || document);
+  const areaInput = $("#serviceArea"), resultsBox = $("#artisanResults");
+  const sendButton = $('button[type="submit"]', form || document);
   const quickButtons = $$("[data-prompt]");
   const history = [];
-  let imageData = null, imageName = "", busy = false;
-  const MAX_HISTORY = 10, MAX_IMAGE_BYTES = 1500000;
+  const MAX_HISTORY = 10;
+  let busy = false;
 
-  function appendMessage(role, text) {
-    if (!conversation) return null;
+  const tradeLabels = {
+    plumbing: "سباكة",
+    electrical: "كهرباء",
+    air_conditioning: "تكييف",
+    carpentry: "نجارة",
+    painting: "نقاشة ودهانات",
+    appliance_repair: "صيانة أجهزة منزلية",
+    water_heater: "سخانات",
+    general_maintenance: "صيانة منزلية"
+  };
+
+  function appendMessage(role, message) {
+    if (!conversation) return;
     $(".hint", conversation)?.remove();
     const node = document.createElement("div");
     node.className = "msg " + (role === "user" ? "user" : "ai");
     const title = document.createElement("b");
     title.textContent = role === "user" ? "أنت" : "✳ مساعد SAN3TY";
     const body = document.createElement("span");
-    body.textContent = text;
+    body.textContent = String(message || "");
     node.append(title, body);
     conversation.appendChild(node);
     conversation.scrollTop = conversation.scrollHeight;
-    return node;
   }
+
   function showTyping() {
     const node = document.createElement("div");
     node.className = "msg ai typing";
@@ -104,120 +117,154 @@
     if (conversation) conversation.scrollTop = conversation.scrollHeight;
     return node;
   }
+
   function setBusy(value) {
     busy = value;
-    if (sendButton) { sendButton.disabled = value; sendButton.textContent = value ? "…" : "↑"; }
+    if (sendButton) {
+      sendButton.disabled = value;
+      sendButton.textContent = value ? "…" : "↑";
+    }
     if (input) input.disabled = value;
-    if (photo) photo.disabled = value;
+    if (areaInput) areaInput.disabled = value;
     quickButtons.forEach(button => { button.disabled = value; });
     if (form) form.setAttribute("aria-busy", String(value));
   }
 
-  function readAsDataURL(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = () => reject(new Error("تعذّر قراءة الصورة."));
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.readAsDataURL(file);
-    });
+  function friendlyError(status, code) {
+    if (code === "ai_binding_missing") return "خدمة الذكاء الاصطناعي لسه مش متوصلة. راجع إعداد AI في Cloudflare Pages حسب دليل تشغيل المشروع.";
+    if (code === "database_binding_missing") return "المساعد شغال، لكن قاعدة بيانات الحرفيين مش متوصلة. أضف قاعدة D1 واربطها بالاسم DB في Cloudflare.";
+    if (code === "rate_limited" || status === 429) return "وصلنا للحد المؤقت للاستخدام المجاني. جرّب تاني بعد شوية.";
+    if (status === 404) return "عنوان المساعد غير متاح على الاستضافة الحالية. لازم نشر المشروع على Cloudflare Pages لتشغيل الشات.";
+    if (status === 503) return "خدمة المساعد أو قاعدة البيانات غير مفعّلة بعد. راجع إعدادات Cloudflare الموضحة في README.";
+    return "حصلت مشكلة أثناء الاتصال بالمساعد. جرّب مرة تانية بعد قليل.";
   }
-  async function prepareImage(file) {
-    if (!file || !file.type.startsWith("image/")) throw new Error("اختار ملف صورة صالح.");
-    if (file.size > MAX_IMAGE_BYTES) throw new Error("حجم الصورة كبير. اختار صورة أقل من 1.5 ميجابايت.");
-    const original = await readAsDataURL(file);
-    const image = new Image();
-    image.src = original;
-    await new Promise((resolve, reject) => {
-      image.onload = resolve;
-      image.onerror = () => reject(new Error("الصورة غير مدعومة أو تالفة."));
-    });
-    const scale = Math.min(1, 1280 / Math.max(image.naturalWidth, image.naturalHeight));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("المتصفح لم يتمكن من تجهيز الصورة.");
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/jpeg", 0.82);
-  }
-  photo?.addEventListener("change", async () => {
-    preview?.replaceChildren();
-    imageData = null; imageName = "";
-    const file = photo.files?.[0];
-    if (!file) return;
-    try {
-      imageData = await prepareImage(file);
-      imageName = file.name;
-      const image = document.createElement("img");
-      image.src = imageData; image.alt = "معاينة الصورة المرفقة";
-      const caption = document.createElement("span");
-      caption.textContent = "تم تجهيز " + file.name + " للإرسال مع الرسالة.";
-      preview?.append(image, caption);
-    } catch (error) {
-      showToast(error.message || "تعذّر تجهيز الصورة.");
-      photo.value = "";
-    }
-  });
 
-  function friendlyApiError(status, code) {
-    if (code === "missing_api_key") return "ربط الذكاء الاصطناعي لم يكتمل بعد: أضف OPENAI_API_KEY في إعدادات Vercel ثم أعد النشر.";
-    if (code === "rate_limited" || status === 429) return "الطلبات كثيرة حاليًا أو رصيد API غير كافٍ. راجع حدود الاستخدام والفوترة في منصة OpenAI.";
-    if (code === "invalid_api_key") return "مفتاح OpenAI API غير صحيح. راجع قيمة OPENAI_API_KEY في Vercel.";
-    if (status === 404) return "واجهة الذكاء الاصطناعي غير موجودة على هذه الاستضافة. يلزم نشر المشروع على Vercel لتشغيل /api/chat.";
-    if (status === 413) return "الطلب أو الصورة أكبر من الحد المسموح. جرّب صورة أصغر.";
-    return "حصلت مشكلة أثناء الاتصال بالمساعد. جرّب مرة أخرى بعد قليل.";
-  }
-  async function askAssistant(text, attachedImage) {
-    const outgoing = history.concat([{ role: "user", content: text }]).slice(-MAX_HISTORY);
+  async function askAssistant(message) {
+    const outgoing = history.concat([{ role: "user", content: message }]).slice(-MAX_HISTORY);
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: outgoing, image: attachedImage || undefined })
+      body: JSON.stringify({
+        messages: outgoing,
+        area: String(areaInput?.value || "").trim()
+      })
     });
+
     let data = {};
-    try { data = await response.json(); } catch { /* Static-hosting 404 may return HTML */ }
+    try { data = await response.json(); } catch { /* Static hosting may return an HTML 404 page */ }
     if (!response.ok) {
-      const error = new Error(friendlyApiError(response.status, data.code));
+      const error = new Error(friendlyError(response.status, data.code));
       error.status = response.status;
       throw error;
     }
-    if (typeof data.reply !== "string" || !data.reply.trim()) throw new Error("المساعد رجع ردًا فارغًا. جرّب صياغة السؤال بطريقة مختلفة.");
+    if (typeof data.reply !== "string" || !data.reply.trim()) {
+      throw new Error("المساعد لم يرجع ردًا واضحًا. جرّب وصف المشكلة بطريقة أبسط.");
+    }
+
     history.splice(0, history.length, ...outgoing, { role: "assistant", content: data.reply });
     while (history.length > MAX_HISTORY) history.shift();
-    return data.reply;
+    return data;
+  }
+
+  function normalizePhone(value) {
+    return String(value || "").replace(/[^0-9+]/g, "");
+  }
+
+  function makeElement(tag, className, content) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (content !== undefined) node.textContent = content;
+    return node;
+  }
+
+  function renderArtisans(recommendations, trade, area) {
+    if (!resultsBox) return;
+    resultsBox.replaceChildren();
+    if (!Array.isArray(recommendations) || !recommendations.length) return;
+
+    const heading = makeElement("div", "recommendation-heading");
+    const title = makeElement("strong", "", "الحرفيون الأنسب لطلبك");
+    const subtitle = makeElement("span", "", (tradeLabels[trade] || "الخدمة المطلوبة") + " · " + (area || "منطقتك"));
+    heading.append(title, subtitle);
+    resultsBox.appendChild(heading);
+
+    recommendations.slice(0, 5).forEach((artisan, index) => {
+      const card = makeElement("article", "artisan-card");
+      const top = makeElement("div", "artisan-card-top");
+      const identity = makeElement("div", "artisan-identity");
+      const name = makeElement("h4", "", (index + 1) + ". " + (artisan.name || "حرفي مسجل"));
+      const subtitleLine = makeElement("p", "", [tradeLabels[artisan.trade] || tradeLabels[trade] || "خدمات صيانة", artisan.district, artisan.governorate].filter(Boolean).join(" · "));
+      identity.append(name, subtitleLine);
+      top.append(identity, makeElement("span", "verified-label", "✓ موثّق"));
+      card.appendChild(top);
+
+      const stats = makeElement("div", "artisan-stats");
+      stats.append(
+        makeElement("span", "", "★ " + (Number(artisan.rating || 0).toFixed(1)) + " (" + Number(artisan.reviews_count || 0) + " تقييم)"),
+        makeElement("span", "", "✓ " + Number(artisan.completed_jobs || 0) + " عمل مكتمل"),
+        makeElement("span", "", artisan.availability === "available" ? "● متاح" : artisan.availability === "busy" ? "● مشغول" : "● التوافر غير محدد")
+      );
+      card.appendChild(stats);
+
+      if (artisan.match_reason) card.appendChild(makeElement("p", "match-reason", artisan.match_reason));
+      if (artisan.bio) card.appendChild(makeElement("p", "artisan-bio", artisan.bio));
+
+      const actions = makeElement("div", "artisan-actions");
+      const phone = normalizePhone(artisan.phone);
+      const whatsapp = normalizePhone(artisan.whatsapp || artisan.phone).replace(/^\+/, "");
+      if (phone) {
+        const call = makeElement("a", "artisan-contact", "اتصال");
+        call.href = "tel:" + phone;
+        actions.appendChild(call);
+      }
+      if (whatsapp) {
+        const wa = makeElement("a", "artisan-contact whatsapp", "واتساب");
+        wa.href = "https://wa.me/" + whatsapp;
+        wa.target = "_blank";
+        wa.rel = "noopener noreferrer";
+        actions.appendChild(wa);
+      }
+      if (actions.childNodes.length) card.appendChild(actions);
+      resultsBox.appendChild(card);
+    });
+    conversation?.scrollTo({ top: conversation.scrollHeight, behavior: "smooth" });
   }
 
   async function submitIssue(value) {
-    const description = String(value || "").trim();
+    const message = String(value || "").trim();
     if (busy) return;
-    if (!description && !imageData) { input?.focus(); showToast("اكتب وصف المشكلة أو أرفق صورة أولًا."); return; }
-    const userText = description || "من فضلك افحص الصورة المرفقة وحدد نوع مشكلة الصيانة المحتملة.";
-    const pendingImage = imageData, pendingName = imageName;
-    appendMessage("user", userText + (pendingName ? "\n📎 " + pendingName : ""));
+    if (!message) {
+      input?.focus();
+      showToast("اكتب وصف المشكلة الأول.");
+      return;
+    }
+
+    appendMessage("user", message);
+    if (input) input.value = "";
     setBusy(true);
     const typing = showTyping();
-    if (input) input.value = "";
+
     try {
-      const reply = await askAssistant(userText, pendingImage);
+      const data = await askAssistant(message);
       typing?.remove();
-      appendMessage("assistant", reply);
-      if (pendingImage) {
-        imageData = null; imageName = "";
-        if (photo) photo.value = "";
-        preview?.replaceChildren();
+      appendMessage("assistant", data.reply);
+      if (Array.isArray(data.recommendations) && data.recommendations.length) {
+        renderArtisans(data.recommendations, data.trade, data.area);
+      } else if (resultsBox) {
+        resultsBox.replaceChildren();
       }
+      if (data.code === "database_unconfigured") showToast("المحادثة تعمل؛ يلزم توصيل قاعدة بيانات الحرفيين لتفعيل الترشيحات.");
     } catch (error) {
       typing?.remove();
-      const message = error.message || "تعذّر الاتصال بالمساعد.";
-      appendMessage("assistant", message);
-      showToast(message);
-      imageData = pendingImage; imageName = pendingName;
+      appendMessage("assistant", error.message || "تعذّر الاتصال بالمساعد.");
+      showToast(error.message || "تعذّر الاتصال بالمساعد.");
     } finally {
       setBusy(false);
       conversation?.scrollTo({ top: conversation.scrollHeight, behavior: "smooth" });
       input?.focus();
     }
   }
+
   form?.addEventListener("submit", event => {
     event.preventDefault();
     submitIssue(input?.value || "");
