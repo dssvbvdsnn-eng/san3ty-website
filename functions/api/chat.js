@@ -246,10 +246,15 @@ async function onRequestPost(context) {
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: analysisInput }
       ],
-      max_tokens: 500,
-      temperature: 0.15
+      max_completion_tokens: 500,
+      temperature: 0.15,
+      chat_template_kwargs: { enable_thinking: false }
     });
-    const raw = modelResult?.response || modelResult?.result?.response || modelResult?.output_text || "";
+    const raw = modelResult?.response
+      || modelResult?.choices?.[0]?.message?.content
+      || modelResult?.result?.response
+      || modelResult?.output_text
+      || "";
     analysis = parseModelJson(raw);
   } catch (error) {
     console.error("Workers AI error:", error?.message || "unknown");
