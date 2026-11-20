@@ -20,13 +20,13 @@ Cloudflare currently includes a free Workers AI allocation of 10,000 Neurons per
 1. Sign in to Cloudflare and open **Workers & Pages**.
 2. Create a **Pages** project and connect the GitHub repository `dssvbvdsnn-eng/san3ty-website`.
 3. Set the production branch to `main`.
-4. For this plain static site, use no build command and set the build output directory to `/` (the repository root).
+4. For this plain static site, use no build command and set the build output directory to `.` (the repository root).
 5. Deploy the project. The `functions/api/chat.js` file is automatically deployed as the `/api/chat` endpoint.
 
 ### 2. Connect the free AI model
 
 1. Open the Pages project in Cloudflare.
-2. Go to **Settings → Functions → Workers AI** (Bindings).
+2. Go to **Settings → Bindings → Add → Workers AI**.
 3. Add a binding named exactly `AI`.
 4. Save and redeploy if Cloudflare asks.
 
@@ -37,7 +37,7 @@ The function uses `@cf/google/gemma-4-26b-a4b-it`. No OpenAI key and no API key 
 1. In Cloudflare, open **Workers & Pages → D1 SQL Database** and create a database, for example `san3ty-db`.
 2. Open the database's SQL console.
 3. Copy and run the complete contents of `database/schema.sql`.
-4. Open the Pages project **Settings → Functions → D1 database bindings**.
+4. Open the Pages project **Settings → Bindings → Add → D1 database**.
 5. Add a binding named exactly `DB` and select the database you created.
 6. Redeploy the Pages project.
 
@@ -50,7 +50,7 @@ Each record needs:
 - `name`, `trade`, `governorate`, and `district`;
 - rating and review totals only when supported by actual reviews;
 - completed jobs and current availability only when verified;
-- optional phone and WhatsApp numbers;
+- optional phone and WhatsApp numbers (store WhatsApp with Egypt's international country code, e.g. `20...`, without the leading plus sign);
 - `is_verified = 1` only after your team completes verification;
 - one or more rows in `artisan_service_areas` for areas they really serve.
 
