@@ -1,6 +1,3 @@
--- SAN3TY DEMO DATA ONLY. All names, ratings, jobs and availability are synthetic.
--- Phone and WhatsApp are intentionally blank. These are not real people.
--- Safe to run again: it first removes only records with the DEMO-SAN3TY- prefix.
 DELETE FROM artisan_service_areas WHERE artisan_id LIKE 'DEMO-SAN3TY-%';
 DELETE FROM artisans WHERE id LIKE 'DEMO-SAN3TY-%';
 
