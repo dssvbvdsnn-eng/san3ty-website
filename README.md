@@ -63,6 +63,60 @@ Supported trade codes: `plumbing`, `electrical`, `air_conditioning`, `carpentry`
 
 The matching endpoint filters to active, verified craftsmen in the right trade and matching district/service area/governorate, then ranks them using location fit, rating, review count, completed jobs, and availability. It returns at most five results. It never fabricates names or contact details.
 
+
+## Demo data and end-to-end testing
+
+The repository includes a synthetic test dataset:
+
+- `database/demo_artisans.csv` — 29 fictional artisan profiles for review/import.
+- `database/seed_demo_artisans.sql` — SQL seed script that inserts 29 demo profiles and 45 service-area rows into D1.
+- All profile names, ratings, reviews, completed jobs, and availability values are fabricated for testing.
+- Phone and WhatsApp fields are deliberately blank. Do not use demo data as a real directory.
+- Demo bios are marked with `بيانات تجريبية غير حقيقية`; the chatbot and UI display a **demo data** badge instead of claiming these are real verified craftsmen.
+
+### Load the demo dataset
+
+1. Open **D1 → san3ty-db → Console**.
+2. Open `database/seed_demo_artisans.sql` in GitHub.
+3. Copy the entire SQL script and paste it into the D1 Console.
+4. Click **Execute**. It is safe to re-run to refresh the same `DEMO-SAN3TY-*` records.
+5. The final SELECT should show `29` demo profiles. Do not import the CSV into the artisans table as-is; it has a combined `service_areas` column, while the seed SQL fills both database tables correctly.
+
+### Check the live bindings
+
+Open `/api/health` on the deployed Worker URL. It returns whether the AI and D1 bindings are present, whether the database query succeeded, and the total/demo profile counts. It does not return contact details.
+
+Expected after seeding:
+- `aiBound: true`
+- `dbBound: true`
+- `dbConnected: true`
+- `artisanCount: 29` if the D1 database contains only demo records, or higher if real records are also present
+- `demoCount: 29`
+
+### Test the chatbot
+
+Go to the demo chatbot on the website. Fill the location box and send one of these tests:
+
+| Area | Message | Expected trade |
+|---|---|---|
+| مدينة نصر، القاهرة | فيه تسريب مياه تحت حوض المطبخ ومحتاج سباك | `plumbing` |
+| مدينة نصر، القاهرة | مفتاح الكهرباء بيفصل كل شوية ومحتاج كهربائي | `electrical` |
+| فيصل، الجيزة | التكييف مش بيبرد وفيه صوت عالي | `air_conditioning` |
+| الدقي، الجيزة | باب الدولاب مش بيقفل كويس ومحتاج نجار | `carpentry` |
+| مدينة 6 أكتوبر، الجيزة | فيه تسريب مياه تحت الحوض ومحتاج سباك | `plumbing`, expected no matching demo records |
+
+The first four should return up to five demo profiles from the matching groups. The last should return no matches. These tests verify classification, region filtering, database queries, ranking, and the no-results behavior.
+
+### Remove the demo dataset after testing
+
+The bottom of `database/seed_demo_artisans.sql` includes two commented cleanup statements. Run them only when you intentionally want to remove demo records:
+```sql
+DELETE FROM artisan_service_areas WHERE artisan_id LIKE 'DEMO-SAN3TY-%';
+DELETE FROM artisans WHERE id LIKE 'DEMO-SAN3TY-%';
+```
+
+This cleanup targets only IDs prefixed with `DEMO-SAN3TY-`.
+
 ## AI service and free-tier limits
 
 The Worker uses Cloudflare Workers AI with `@cf/google/gemma-4-26b-a4b-it` through the binding `AI`. No OpenAI API key is required. The free allocation is limited and can change; it is not unlimited.
